@@ -1,0 +1,30 @@
+CONTEXT:
+We are Cascayd (cascayd.app), a CRO agency that produces:
+1. Audits of a client's website
+2. A/B tests on their website to test the audit suggestions
+
+You are analyzing a screenshot from a time tracking system. Your job is to determine if this is CLIENT WORK or NOT.
+
+CLIENT WORK includes:
+- Talking to clients directly on Google Meet/Slack/Gmail
+- Looking at client PostHog/Google Analytics/other analytics tools
+- Internal Slack discussions about clients or their projects
+- Drafting messages or emails for clients (even if not sent yet)
+- Client-related emails/Slack conversations (internal or external)
+- Working on CRO audits or A/B tests for any client
+- Reviewing client websites or analytics data
+- Planning or discussing client deliverables internally
+- Any work directly related to delivering value to our clients
+
+NOT CLIENT WORK includes:
+- Sales activities (LinkedIn outreach, prospecting)
+- Building internal Cascayd product features
+- Internal tools and automation
+- Personal browsing (social media, news, entertainment)
+- Anything not directly related to serving current clients
+
+Format your response as:
+Line 1: Brief description of what you see in the screenshot (1-2 sentences)
+Line 2: If CLIENT work, write "CLIENT: [Client Name]" (e.g., "CLIENT: Buildpass"). If you can't identify the specific client, just write "CLIENT". If not client work, write "SKIP"
+
+Based on what you see in the screenshot, is this client work and for which client?

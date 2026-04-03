@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>cascayd time tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 24px;
+      color: #fff;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .date-selector {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .date-selector input {
+      padding: 8px 12px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 8px 16px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: #3a3a3a;
+    }
+    .btn-primary {
+      background: #10b981;
+      border-color: #10b981;
+    }
+    .btn-primary:hover {
+      background: #059669;
+    }
+    .view-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .view-tab {
+      padding: 10px 20px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .view-tab:hover {
+      background: #2a2a2a;
+    }
+    .view-tab.active {
+      background: #10b981;
+      border-color: #10b981;
+      color: #000;
+      font-weight: 600;
+    }
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+    .section {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    .big-time {
+      font-size: 64px;
+      font-weight: bold;
+      color: #10b981;
+      margin: 20px 0;
+    }
+    .sub-text {
+      color: #888;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .time-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      background: #2a2a2a;
+      border-radius: 6px;
+    }
+    .time-entry .name {
+      flex: 1;
+      font-size: 14px;
+    }
+    .time-entry .duration {
+      font-weight: bold;
+      color: #10b981;
+      min-width: 80px;
+      text-align: right;
+    }
+    .timeline-item {
+      padding: 15px;
+      margin-bottom: 10px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      border-left: 4px solid #10b981;
+    }
+    .timeline-item .time {
+      font-weight: bold;
+      color: #10b981;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+    .timeline-item .description {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e0e0e0;
+    }
+    .activity-item {
+      padding: 8px 12px;
+      margin-bottom: 4px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #aaa;
+      display: flex;
+      gap: 10px;
+    }
+    .activity-item .time {
+      color: #666;
+      min-width: 80px;
+    }
+    .activity-item .app {
+      color: #888;
+      min-width: 120px;
+      font-weight: 600;
+    }
+    .activity-item .title {
+      flex: 1;
+    }
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 14px;
+    }
+    textarea {
+      width: 100%;
+      height: 400px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #e0e0e0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .prompt-description {
+      color: #888;
+      margin-bottom: 15px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .client-item {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .client-item.collapsed {
+      padding: 10px 15px;
+    }
+    .client-item.collapsed .client-details {
+      display: none;
+    }
+    .client-item .client-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .client-item.collapsed .client-header {
+      margin-bottom: 0;
+    }
+    .client-item .client-name-display {
+      font-size: 16px;
+      font-weight: 600;
+      color: #10b981;
+      cursor: pointer;
+    }
+    .client-item .client-name-display:hover {
+      color: #059669;
+    }
+    .client-item .client-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .client-item input {
+      background: #1a1a1a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .client-item label {
+      display: block;
+      color: #888;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+    .client-item .btn-remove {
+      background: #ef4444;
+      border-color: #ef4444;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .client-item .btn-remove:hover {
+      background: #dc2626;
+    }
+    .client-item .btn-save {
+      background: #10b981;
+      border-color: #10b981;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .client-item .btn-save:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <h1>cascayd time tracker</h1>
+
+  <div class="date-selector">
+    <label>Date:</label>
+    <input type="date" id="dateInput" />
+    <button class="btn btn-primary" id="exportBtn">Export Logs</button>
+    <button class="btn" id="openFolderBtn">Open Logs Folder</button>
+  </div>
+
+  <div class="view-tabs">
+    <div class="view-tab active" data-view="overview">Overview</div>
+    <div class="view-tab" data-view="details">Details</div>
+    <div class="view-tab" data-view="settings">Settings</div>
+  </div>
+
+  <div id="overviewView" class="view active">
+    <div class="section">
+      <h2>Client Work Today</h2>
+      <div class="big-time" id="totalTime">0h 0m</div>
+      <div class="sub-text" id="totalCount">0 work sessions logged</div>
+    </div>
+
+    <div class="section">
+      <h2>Time by Client</h2>
+      <div id="clientTime"></div>
+    </div>
+
+    <div class="section">
+      <h2>Time by App</h2>
+      <div id="appTime"></div>
+    </div>
+  </div>
+
+  <div id="detailsView" class="view">
+    <div class="section">
+      <h2>Client Work Timeline</h2>
+      <button class="btn" id="openCategoriesFileBtn" style="margin-bottom: 15px;">Open Log File</button>
+      <div id="categoriesTimeline"></div>
+    </div>
+
+    <div class="section">
+      <h2>Window Activity</h2>
+      <button class="btn" id="openActivityFileBtn" style="margin-bottom: 15px;">Open Activity File</button>
+      <div id="activityLog"></div>
+    </div>
+  </div>
+
+  <div id="settingsView" class="view">
+    <div class="section">
+      <h2>Clients Configuration</h2>
+      <p class="prompt-description">
+        Add your clients and key contacts so the AI can better recognize when you're doing client work.
+      </p>
+      <div id="clientsList"></div>
+      <button class="btn btn-primary" id="addClientBtn" style="margin-top: 15px;">Add Client</button>
+    </div>
+
+    <div class="section">
+      <h2>AI Prompt Configuration</h2>
+      <p class="prompt-description">
+        This prompt is sent to Claude Sonnet 4.5 with each screenshot to determine if you're doing client work.
+        The client list above is automatically inserted into this prompt.
+      </p>
+      <textarea id="promptEditor"></textarea>
+      <button class="btn btn-primary" id="savePromptBtn" style="margin-top: 15px;">Save Prompt</button>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const dateInput = document.getElementById('dateInput');
+    const exportBtn = document.getElementById('exportBtn');
+    const openFolderBtn = document.getElementById('openFolderBtn');
+    const openCategoriesFileBtn = document.getElementById('openCategoriesFileBtn');
+    const openActivityFileBtn = document.getElementById('openActivityFileBtn');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+
+    let currentDate = today;
+    let currentData = { categories: [], activity: [] };
+
+    // View switching
+    document.querySelectorAll('.view-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        tab.classList.add('active');
+        const view = tab.getAttribute('data-view');
+        document.getElementById(view + 'View').classList.add('active');
+
+        // Load prompt when settings tab is opened
+        if (view === 'settings') {
+          ipcRenderer.send('load-prompt');
+        }
+      });
+    });
+
+    function loadData(date) {
+      currentDate = date;
+      ipcRenderer.send('load-logs', date);
+    }
+
+    dateInput.addEventListener('change', (e) => {
+      loadData(e.target.value);
+    });
+
+    exportBtn.addEventListener('click', () => {
+      ipcRenderer.send('export-logs', currentDate);
+    });
+
+    openFolderBtn.addEventListener('click', () => {
+      ipcRenderer.send('open-logs-folder');
+    });
+
+    openCategoriesFileBtn.addEventListener('click', () => {
+      ipcRenderer.send('open-log-file', { date: currentDate, type: 'categories' });
+    });
+
+    openActivityFileBtn.addEventListener('click', () => {
+      ipcRenderer.send('open-log-file', { date: currentDate, type: 'activity' });
+    });
+
+    ipcRenderer.on('logs-data', (event, data) => {
+      currentData = data;
+      renderOverview(data.categories, data.activity);
+      renderDetails(data.categories, data.activity);
+    });
+
+    ipcRenderer.on('export-complete', (event, filePath) => {
+      alert('Logs exported to: ' + filePath);
+    });
+
+    // Clients configuration
+    let clients = [];
+    const clientsList = document.getElementById('clientsList');
+    const addClientBtn = document.getElementById('addClientBtn');
+
+    function renderClients() {
+      if (clients.length === 0) {
+        clientsList.innerHTML = '<div class="no-data">No clients configured</div>';
+        return;
+      }
+
+      const html = clients.map((client, index) => {
+        const expanded = client.expanded !== false; // default to true
+        const displayName = client.business || 'New Client';
+
+        if (expanded) {
+          return `
+            <div class="client-item" data-index="${index}">
+              <div class="client-header">
+                <div class="client-name-display" data-index="${index}">${displayName}</div>
+                <div class="client-buttons">
+                  <button class="btn btn-save" data-index="${index}">Save</button>
+                  <button class="btn btn-remove" data-index="${index}">Remove</button>
+                </div>
+              </div>
+              <div class="client-details">
+                <label>Business Name</label>
+                <input type="text" class="business-input" data-index="${index}" value="${client.business || ''}" placeholder="e.g., Buildpass">
+                <label>Key People (comma separated)</label>
+                <input type="text" class="people-input" data-index="${index}" value="${client.people || ''}" placeholder="e.g., John Smith, Jane Doe">
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="client-item collapsed" data-index="${index}">
+              <div class="client-header">
+                <div class="client-name-display" data-index="${index}">${displayName}</div>
+                <div class="client-buttons">
+                  <button class="btn btn-remove" data-index="${index}">Remove</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+      clientsList.innerHTML = html;
+
+      // Add event listeners
+      document.querySelectorAll('.business-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          clients[index].business = e.target.value;
+        });
+      });
+
+      document.querySelectorAll('.people-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          clients[index].people = e.target.value;
+        });
+      });
+
+      document.querySelectorAll('.btn-save').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          clients[index].expanded = false;
+          saveClients();
+          renderClients();
+        });
+      });
+
+      document.querySelectorAll('.btn-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          clients.splice(index, 1);
+          saveClients();
+          renderClients();
+        });
+      });
+
+      document.querySelectorAll('.client-name-display').forEach(display => {
+        display.addEventListener('click', (e) => {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          clients[index].expanded = !clients[index].expanded;
+          renderClients();
+        });
+      });
+    }
+
+    function saveClients() {
+      ipcRenderer.send('save-clients', clients);
+    }
+
+    addClientBtn.addEventListener('click', () => {
+      clients.push({ business: '', people: '', expanded: true });
+      renderClients();
+    });
+
+    ipcRenderer.on('clients-data', (event, data) => {
+      clients = data || [];
+      renderClients();
+    });
+
+    // Prompt editor
+    const promptEditor = document.getElementById('promptEditor');
+    const savePromptBtn = document.getElementById('savePromptBtn');
+
+    ipcRenderer.on('prompt-data', (event, prompt) => {
+      promptEditor.value = prompt;
+    });
+
+    savePromptBtn.addEventListener('click', () => {
+      ipcRenderer.send('save-prompt', promptEditor.value);
+    });
+
+    ipcRenderer.on('prompt-saved', () => {
+      alert('Prompt saved successfully!');
+    });
+
+    // Load clients when settings tab is opened
+    const originalTabClick = document.querySelectorAll('.view-tab')[2];
+    if (originalTabClick) {
+      originalTabClick.addEventListener('click', () => {
+        ipcRenderer.send('load-clients');
+      });
+    }
+
+    function formatDuration(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      return `${minutes}m`;
+    }
+
+    function renderOverview(categories, activity) {
+      // Calculate time for CLIENT work (2 minutes per screenshot)
+      let totalTime = 0;
+      let totalCount = 0;
+      const clientTimeMap = {};
+
+      categories.forEach(item => {
+        totalTime += 120; // 2 minutes per screenshot
+        totalCount++;
+
+        // Track time by client
+        const clientName = item.client || 'Unknown';
+        if (!clientTimeMap[clientName]) {
+          clientTimeMap[clientName] = 0;
+        }
+        clientTimeMap[clientName] += 120;
+      });
+
+      // Render summary
+      document.getElementById('totalTime').textContent = formatDuration(totalTime);
+      document.getElementById('totalCount').textContent = `${totalCount} work sessions logged`;
+
+      // Render time by client
+      const sortedClients = Object.entries(clientTimeMap)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (sortedClients.length === 0) {
+        document.getElementById('clientTime').innerHTML = '<div class="no-data">No client work logged</div>';
+      } else {
+        const clientHtml = sortedClients.map(([client, time]) => `
+          <div class="time-entry">
+            <div class="name">${client}</div>
+            <div class="duration">${formatDuration(time)}</div>
+          </div>
+        `).join('');
+        document.getElementById('clientTime').innerHTML = clientHtml;
+      }
+
+      // Calculate time per app
+      const appTime = {};
+      for (let i = 0; i < activity.length - 1; i++) {
+        const current = activity[i];
+        const next = activity[i + 1];
+        const duration = (new Date(next.timestamp) - new Date(current.timestamp)) / 1000;
+
+        if (duration > 0 && duration < 600) { // Only count if less than 10 minutes
+          if (!appTime[current.app]) {
+            appTime[current.app] = 0;
+          }
+          appTime[current.app] += duration;
+        }
+      }
+
+      // Add last activity with average duration
+      if (activity.length > 0) {
+        const lastApp = activity[activity.length - 1].app;
+        if (!appTime[lastApp]) {
+          appTime[lastApp] = 0;
+        }
+        appTime[lastApp] += 30;
+      }
+
+      const sortedApps = Object.entries(appTime)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      if (sortedApps.length === 0) {
+        document.getElementById('appTime').innerHTML = '<div class="no-data">No app activity logged</div>';
+      } else {
+        const appHtml = sortedApps.map(([app, time]) => `
+          <div class="time-entry">
+            <div class="name">${app}</div>
+            <div class="duration">${formatDuration(time)}</div>
+          </div>
+        `).join('');
+        document.getElementById('appTime').innerHTML = appHtml;
+      }
+    }
+
+    function renderDetails(categories, activity) {
+      // Render categories timeline
+      if (!categories.length) {
+        document.getElementById('categoriesTimeline').innerHTML = '<div class="no-data">No client work logged for this date</div>';
+      } else {
+        const html = categories.map((item, index) => `
+          <div class="timeline-item" data-index="${index}">
+            <div class="time">${item.time} • ${item.client || 'Unknown Client'}</div>
+            <div class="description">${item.description || 'No description'}</div>
+          </div>
+        `).join('');
+        document.getElementById('categoriesTimeline').innerHTML = html;
+      }
+
+      // Render activity log
+      if (!activity.length) {
+        document.getElementById('activityLog').innerHTML = '<div class="no-data">No window activity logged</div>';
+      } else {
+        const html = activity.slice(0, 200).map(item => `
+          <div class="activity-item">
+            <span class="time">${item.time}</span>
+            <span class="app">${item.app}</span>
+            <span class="title">${item.title}</span>
+          </div>
+        `).join('');
+        document.getElementById('activityLog').innerHTML = html;
+      }
+    }
+
+    // Load today's data on start
+    loadData(today);
+  </script>
+</body>
+</html>
