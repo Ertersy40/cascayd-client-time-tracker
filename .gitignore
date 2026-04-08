@@ -6,3 +6,4 @@ logs/
 .DS_Store
 Thumbs.db
 .env
+tracked_windows.json

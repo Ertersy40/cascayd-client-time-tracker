@@ -256,6 +256,201 @@
     .client-item .btn-save:hover {
       background: #059669;
     }
+    .window-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .window-item:hover {
+      background: #333;
+    }
+    .window-item input[type="checkbox"] {
+      margin-right: 15px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .window-item .window-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .window-item .window-app {
+      font-weight: 600;
+      color: #10b981;
+      font-size: 14px;
+    }
+    .window-item .window-title {
+      color: #aaa;
+      font-size: 13px;
+    }
+    .report-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      border-left: 4px solid #10b981;
+    }
+    .report-item .window-info {
+      flex: 1;
+    }
+    .report-item .window-app {
+      font-weight: 600;
+      color: #e0e0e0;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .report-item .window-title {
+      color: #888;
+      font-size: 13px;
+    }
+    .report-item .duration {
+      font-size: 20px;
+      font-weight: bold;
+      color: #10b981;
+      min-width: 100px;
+      text-align: right;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    .empty-state h3 {
+      color: #888;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    .empty-state p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .group-container {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+    }
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .group-title-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex: 1;
+    }
+    .group-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .group-name-input {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .group-time {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .group-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-icon {
+      padding: 6px 10px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover {
+      background: #3a3a3a;
+    }
+    .color-picker {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #3a3a3a;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+    .color-picker::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-picker::-webkit-color-swatch {
+      border: none;
+      border-radius: 2px;
+    }
+    .group-windows {
+      min-height: 40px;
+      border-radius: 4px;
+      padding: 10px;
+      background: #0a0a0a;
+    }
+    .group-windows.drag-over {
+      background: #2a2a2a;
+      border: 2px dashed #10b981;
+    }
+    .draggable-window {
+      cursor: move;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+    .draggable-window.dragging {
+      opacity: 0.5;
+    }
+    .unassigned-section {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .unassigned-header {
+      font-size: 18px;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 15px;
+    }
+    .create-group-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .create-group-input {
+      flex: 1;
+      padding: 10px 15px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -269,61 +464,31 @@
   </div>
 
   <div class="view-tabs">
-    <div class="view-tab active" data-view="overview">Overview</div>
-    <div class="view-tab" data-view="details">Details</div>
+    <div class="view-tab active" data-view="report">Report</div>
+    <div class="view-tab" data-view="browse">Browse</div>
     <div class="view-tab" data-view="settings">Settings</div>
   </div>
 
-  <div id="overviewView" class="view active">
+  <div id="reportView" class="view active">
     <div class="section">
-      <h2>Client Work Today</h2>
-      <div class="big-time" id="totalTime">0h 0m</div>
-      <div class="sub-text" id="totalCount">0 work sessions logged</div>
-    </div>
-
-    <div class="section">
-      <h2>Time by Client</h2>
-      <div id="clientTime"></div>
-    </div>
-
-    <div class="section">
-      <h2>Time by App</h2>
-      <div id="appTime"></div>
+      <h2>Tracked Windows Report</h2>
+      <div class="sub-text">Showing time spent on selected windows</div>
+      <div id="reportContent"></div>
     </div>
   </div>
 
-  <div id="detailsView" class="view">
+  <div id="browseView" class="view">
     <div class="section">
-      <h2>Client Work Timeline</h2>
-      <button class="btn" id="openCategoriesFileBtn" style="margin-bottom: 15px;">Open Log File</button>
-      <div id="categoriesTimeline"></div>
-    </div>
-
-    <div class="section">
-      <h2>Window Activity</h2>
-      <button class="btn" id="openActivityFileBtn" style="margin-bottom: 15px;">Open Activity File</button>
-      <div id="activityLog"></div>
+      <h2>Browse All Windows</h2>
+      <div class="sub-text">Select windows to track for reporting. Sorted by time spent.</div>
+      <div id="browseContent"></div>
     </div>
   </div>
 
   <div id="settingsView" class="view">
     <div class="section">
-      <h2>Clients Configuration</h2>
-      <p class="prompt-description">
-        Add your clients and key contacts so the AI can better recognize when you're doing client work.
-      </p>
-      <div id="clientsList"></div>
-      <button class="btn btn-primary" id="addClientBtn" style="margin-top: 15px;">Add Client</button>
-    </div>
-
-    <div class="section">
-      <h2>AI Prompt Configuration</h2>
-      <p class="prompt-description">
-        This prompt is sent to Claude Sonnet 4.5 with each screenshot to determine if you're doing client work.
-        The client list above is automatically inserted into this prompt.
-      </p>
-      <textarea id="promptEditor"></textarea>
-      <button class="btn btn-primary" id="savePromptBtn" style="margin-top: 15px;">Save Prompt</button>
+      <h2>Settings</h2>
+      <button class="btn" id="openFolderBtn2" style="margin-top: 15px;">Open Logs Folder</button>
     </div>
   </div>
 
@@ -333,13 +498,13 @@
     const dateInput = document.getElementById('dateInput');
     const exportBtn = document.getElementById('exportBtn');
     const openFolderBtn = document.getElementById('openFolderBtn');
-    const openCategoriesFileBtn = document.getElementById('openCategoriesFileBtn');
-    const openActivityFileBtn = document.getElementById('openActivityFileBtn');
+    const openFolderBtn2 = document.getElementById('openFolderBtn2');
     const today = new Date().toISOString().split('T')[0];
     dateInput.value = today;
 
     let currentDate = today;
-    let currentData = { categories: [], activity: [] };
+    let trackedData = { groups: [], windows: [] };
+    let reportWindows = [];
 
     // View switching
     document.querySelectorAll('.view-tab').forEach(tab => {
@@ -350,176 +515,37 @@
         const view = tab.getAttribute('data-view');
         document.getElementById(view + 'View').classList.add('active');
 
-        // Load prompt when settings tab is opened
-        if (view === 'settings') {
-          ipcRenderer.send('load-prompt');
+        // Load data for each view
+        if (view === 'report') {
+          loadReport(currentDate);
+        } else if (view === 'browse') {
+          loadWindowsList(currentDate);
         }
       });
     });
 
-    function loadData(date) {
-      currentDate = date;
-      ipcRenderer.send('load-logs', date);
-    }
-
+    // Date change
     dateInput.addEventListener('change', (e) => {
-      loadData(e.target.value);
+      currentDate = e.target.value;
+      loadReport(currentDate);
+      loadWindowsList(currentDate);
     });
 
+    // Export
     exportBtn.addEventListener('click', () => {
       ipcRenderer.send('export-logs', currentDate);
     });
 
+    // Open folder
     openFolderBtn.addEventListener('click', () => {
       ipcRenderer.send('open-logs-folder');
     });
 
-    openCategoriesFileBtn.addEventListener('click', () => {
-      ipcRenderer.send('open-log-file', { date: currentDate, type: 'categories' });
+    openFolderBtn2.addEventListener('click', () => {
+      ipcRenderer.send('open-logs-folder');
     });
 
-    openActivityFileBtn.addEventListener('click', () => {
-      ipcRenderer.send('open-log-file', { date: currentDate, type: 'activity' });
-    });
-
-    ipcRenderer.on('logs-data', (event, data) => {
-      currentData = data;
-      renderOverview(data.categories, data.activity);
-      renderDetails(data.categories, data.activity);
-    });
-
-    ipcRenderer.on('export-complete', (event, filePath) => {
-      alert('Logs exported to: ' + filePath);
-    });
-
-    // Clients configuration
-    let clients = [];
-    const clientsList = document.getElementById('clientsList');
-    const addClientBtn = document.getElementById('addClientBtn');
-
-    function renderClients() {
-      if (clients.length === 0) {
-        clientsList.innerHTML = '<div class="no-data">No clients configured</div>';
-        return;
-      }
-
-      const html = clients.map((client, index) => {
-        const expanded = client.expanded !== false; // default to true
-        const displayName = client.business || 'New Client';
-
-        if (expanded) {
-          return `
-            <div class="client-item" data-index="${index}">
-              <div class="client-header">
-                <div class="client-name-display" data-index="${index}">${displayName}</div>
-                <div class="client-buttons">
-                  <button class="btn btn-save" data-index="${index}">Save</button>
-                  <button class="btn btn-remove" data-index="${index}">Remove</button>
-                </div>
-              </div>
-              <div class="client-details">
-                <label>Business Name</label>
-                <input type="text" class="business-input" data-index="${index}" value="${client.business || ''}" placeholder="e.g., Buildpass">
-                <label>Key People (comma separated)</label>
-                <input type="text" class="people-input" data-index="${index}" value="${client.people || ''}" placeholder="e.g., John Smith, Jane Doe">
-              </div>
-            </div>
-          `;
-        } else {
-          return `
-            <div class="client-item collapsed" data-index="${index}">
-              <div class="client-header">
-                <div class="client-name-display" data-index="${index}">${displayName}</div>
-                <div class="client-buttons">
-                  <button class="btn btn-remove" data-index="${index}">Remove</button>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-      }).join('');
-      clientsList.innerHTML = html;
-
-      // Add event listeners
-      document.querySelectorAll('.business-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const index = parseInt(e.target.getAttribute('data-index'));
-          clients[index].business = e.target.value;
-        });
-      });
-
-      document.querySelectorAll('.people-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const index = parseInt(e.target.getAttribute('data-index'));
-          clients[index].people = e.target.value;
-        });
-      });
-
-      document.querySelectorAll('.btn-save').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const index = parseInt(e.target.getAttribute('data-index'));
-          clients[index].expanded = false;
-          saveClients();
-          renderClients();
-        });
-      });
-
-      document.querySelectorAll('.btn-remove').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const index = parseInt(e.target.getAttribute('data-index'));
-          clients.splice(index, 1);
-          saveClients();
-          renderClients();
-        });
-      });
-
-      document.querySelectorAll('.client-name-display').forEach(display => {
-        display.addEventListener('click', (e) => {
-          const index = parseInt(e.target.getAttribute('data-index'));
-          clients[index].expanded = !clients[index].expanded;
-          renderClients();
-        });
-      });
-    }
-
-    function saveClients() {
-      ipcRenderer.send('save-clients', clients);
-    }
-
-    addClientBtn.addEventListener('click', () => {
-      clients.push({ business: '', people: '', expanded: true });
-      renderClients();
-    });
-
-    ipcRenderer.on('clients-data', (event, data) => {
-      clients = data || [];
-      renderClients();
-    });
-
-    // Prompt editor
-    const promptEditor = document.getElementById('promptEditor');
-    const savePromptBtn = document.getElementById('savePromptBtn');
-
-    ipcRenderer.on('prompt-data', (event, prompt) => {
-      promptEditor.value = prompt;
-    });
-
-    savePromptBtn.addEventListener('click', () => {
-      ipcRenderer.send('save-prompt', promptEditor.value);
-    });
-
-    ipcRenderer.on('prompt-saved', () => {
-      alert('Prompt saved successfully!');
-    });
-
-    // Load clients when settings tab is opened
-    const originalTabClick = document.querySelectorAll('.view-tab')[2];
-    if (originalTabClick) {
-      originalTabClick.addEventListener('click', () => {
-        ipcRenderer.send('load-clients');
-      });
-    }
-
+    // Format duration helper
     function formatDuration(seconds) {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
@@ -529,116 +555,295 @@
       return `${minutes}m`;
     }
 
-    function renderOverview(categories, activity) {
-      // Calculate time for CLIENT work (2 minutes per screenshot)
-      let totalTime = 0;
-      let totalCount = 0;
-      const clientTimeMap = {};
+    // Load report data
+    function loadReport(date) {
+      ipcRenderer.send('get-report', date);
+    }
 
-      categories.forEach(item => {
-        totalTime += 120; // 2 minutes per screenshot
-        totalCount++;
+    // Load windows list for browse tab
+    function loadWindowsList(date) {
+      ipcRenderer.send('get-windows-list', date);
+    }
 
-        // Track time by client
-        const clientName = item.client || 'Unknown';
-        if (!clientTimeMap[clientName]) {
-          clientTimeMap[clientName] = 0;
-        }
-        clientTimeMap[clientName] += 120;
+    // Load tracked windows
+    function loadTrackedWindows() {
+      ipcRenderer.send('load-tracked-windows');
+    }
+
+    // Render report view
+    ipcRenderer.on('report-data', (event, data) => {
+      reportWindows = data.windows;
+      const reportContent = document.getElementById('reportContent');
+
+      if (data.windows.length === 0) {
+        reportContent.innerHTML = `
+          <div class="empty-state">
+            <h3>No tracked windows</h3>
+            <p>Go to the Browse tab to select windows you want to track.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Calculate total time
+      let totalSeconds = 0;
+      data.windows.forEach(w => totalSeconds += w.totalSeconds);
+
+      // Create group button
+      const createGroupHtml = `
+        <div class="create-group-section">
+          <input type="text" class="create-group-input" id="newGroupName" placeholder="New group name...">
+          <button class="btn btn-primary" id="createGroupBtn">Create Group</button>
+        </div>
+      `;
+
+      // Render unassigned windows first
+      const unassignedWindows = data.windows.filter(w => !w.groupId);
+      const unassignedHtml = unassignedWindows.map(window => `
+        <div class="report-item draggable-window" draggable="true"
+             data-app="${window.app.replace(/"/g, '&quot;')}"
+             data-title="${window.title.replace(/"/g, '&quot;')}">
+          <div class="window-info">
+            <div class="window-app">${window.app}</div>
+            <div class="window-title">${window.title}</div>
+          </div>
+          <div class="duration">${formatDuration(window.totalSeconds)}</div>
+        </div>
+      `).join('');
+
+      const unassignedSection = unassignedWindows.length > 0 ? `
+        <div class="unassigned-section">
+          <div class="unassigned-header">Unassigned Windows (drag into groups below)</div>
+          <div class="group-windows" data-group-id="null">
+            ${unassignedHtml}
+          </div>
+        </div>
+      ` : '';
+
+      // Render groups below
+      let groupsHtml = '';
+      data.groups.forEach(group => {
+        const groupWindows = data.windows.filter(w => w.groupId === group.id);
+        const groupTime = groupWindows.reduce((sum, w) => sum + w.totalSeconds, 0);
+
+        const windowsHtml = groupWindows.map(window => `
+          <div class="report-item draggable-window" draggable="true"
+               data-app="${window.app.replace(/"/g, '&quot;')}"
+               data-title="${window.title.replace(/"/g, '&quot;')}">
+            <div class="window-info">
+              <div class="window-app">${window.app}</div>
+              <div class="window-title">${window.title}</div>
+            </div>
+            <div class="duration">${formatDuration(window.totalSeconds)}</div>
+          </div>
+        `).join('');
+
+        groupsHtml += `
+          <div class="group-container" style="border-left-color: ${group.color};">
+            <div class="group-header">
+              <div class="group-title-section">
+                <span class="group-name" data-group-id="${group.id}">${group.name}</span>
+                <span class="group-time" style="color: ${group.color};">${formatDuration(groupTime)}</span>
+              </div>
+              <div class="group-actions">
+                <input type="color" class="color-picker" value="${group.color}" data-group-id="${group.id}" title="Change color">
+                <button class="btn-icon rename-group-btn" data-group-id="${group.id}">Rename</button>
+                <button class="btn-icon delete-group-btn" data-group-id="${group.id}">Delete</button>
+              </div>
+            </div>
+            <div class="group-windows" data-group-id="${group.id}">
+              ${windowsHtml || '<div class="sub-text">No windows in this group. Drag windows from Unassigned above.</div>'}
+            </div>
+          </div>
+        `;
       });
 
-      // Render summary
-      document.getElementById('totalTime').textContent = formatDuration(totalTime);
-      document.getElementById('totalCount').textContent = `${totalCount} work sessions logged`;
+      reportContent.innerHTML = `
+        <div class="big-time">${formatDuration(totalSeconds)}</div>
+        <div class="sub-text" style="margin-bottom: 30px;">Total time across ${data.windows.length} tracked windows</div>
 
-      // Render time by client
-      const sortedClients = Object.entries(clientTimeMap)
-        .sort((a, b) => b[1] - a[1]);
+        ${createGroupHtml}
 
-      if (sortedClients.length === 0) {
-        document.getElementById('clientTime').innerHTML = '<div class="no-data">No client work logged</div>';
-      } else {
-        const clientHtml = sortedClients.map(([client, time]) => `
-          <div class="time-entry">
-            <div class="name">${client}</div>
-            <div class="duration">${formatDuration(time)}</div>
+        ${unassignedSection}
+
+        ${groupsHtml}
+      `;
+
+      // Attach event listeners
+      setupDragAndDrop();
+      setupGroupActions();
+    });
+
+    // Render browse view
+    ipcRenderer.on('windows-list-data', (event, data) => {
+      const browseContent = document.getElementById('browseContent');
+
+      if (data.length === 0) {
+        browseContent.innerHTML = `
+          <div class="empty-state">
+            <h3>No activity logged</h3>
+            <p>No window activity has been recorded for this date.</p>
           </div>
-        `).join('');
-        document.getElementById('clientTime').innerHTML = clientHtml;
+        `;
+        return;
       }
 
-      // Calculate time per app
-      const appTime = {};
-      for (let i = 0; i < activity.length - 1; i++) {
-        const current = activity[i];
-        const next = activity[i + 1];
-        const duration = (new Date(next.timestamp) - new Date(current.timestamp)) / 1000;
+      const itemsHtml = data.map((window, index) => `
+        <div class="window-item" data-index="${index}">
+          <input type="checkbox" ${window.isTracked ? 'checked' : ''}
+                 data-app="${window.app.replace(/"/g, '&quot;')}"
+                 data-title="${window.title.replace(/"/g, '&quot;')}"
+                 data-tracked="${window.isTracked}">
+          <div class="window-info">
+            <div class="window-app">${window.app}</div>
+            <div class="window-title">${window.title}</div>
+          </div>
+        </div>
+      `).join('');
 
-        if (duration > 0 && duration < 600) { // Only count if less than 10 minutes
-          if (!appTime[current.app]) {
-            appTime[current.app] = 0;
+      browseContent.innerHTML = itemsHtml;
+
+      // Add checkbox event listeners
+      document.querySelectorAll('.window-item input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const app = e.target.getAttribute('data-app');
+          const title = e.target.getAttribute('data-title');
+          const isTracked = e.target.getAttribute('data-tracked') === 'true';
+
+          ipcRenderer.send('toggle-window-tracking', { app, title, isTracked });
+        });
+      });
+    });
+
+    // Update tracked windows data
+    ipcRenderer.on('tracked-windows-data', (event, data) => {
+      trackedData = data;
+      // Refresh current view
+      const activeTab = document.querySelector('.view-tab.active');
+      if (activeTab) {
+        const view = activeTab.getAttribute('data-view');
+        if (view === 'report') {
+          loadReport(currentDate);
+        } else if (view === 'browse') {
+          loadWindowsList(currentDate);
+        }
+      }
+    });
+
+    // Setup drag and drop
+    function setupDragAndDrop() {
+      const draggables = document.querySelectorAll('.draggable-window');
+      const dropZones = document.querySelectorAll('.group-windows');
+
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+          draggable.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', JSON.stringify({
+            app: draggable.getAttribute('data-app'),
+            title: draggable.getAttribute('data-title')
+          }));
+        });
+
+        draggable.addEventListener('dragend', () => {
+          draggable.classList.remove('dragging');
+        });
+      });
+
+      dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('drag-over');
+        });
+
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('drag-over');
+        });
+
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+          const groupId = zone.getAttribute('data-group-id');
+
+          // Assign window to group (null = unassigned)
+          ipcRenderer.send('assign-window-to-group', {
+            app: data.app,
+            title: data.title,
+            groupId: groupId === 'null' ? null : groupId
+          });
+        });
+      });
+    }
+
+    // Setup group actions
+    function setupGroupActions() {
+      // Create group button
+      const createGroupBtn = document.getElementById('createGroupBtn');
+      const newGroupInput = document.getElementById('newGroupName');
+
+      if (createGroupBtn) {
+        createGroupBtn.addEventListener('click', () => {
+          const groupName = newGroupInput.value.trim();
+          if (groupName) {
+            ipcRenderer.send('create-group', groupName);
+            newGroupInput.value = '';
           }
-          appTime[current.app] += duration;
-        }
+        });
+
+        newGroupInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            createGroupBtn.click();
+          }
+        });
       }
 
-      // Add last activity with average duration
-      if (activity.length > 0) {
-        const lastApp = activity[activity.length - 1].app;
-        if (!appTime[lastApp]) {
-          appTime[lastApp] = 0;
-        }
-        appTime[lastApp] += 30;
-      }
+      // Color pickers
+      document.querySelectorAll('.color-picker').forEach(picker => {
+        picker.addEventListener('change', (e) => {
+          const groupId = picker.getAttribute('data-group-id');
+          const color = e.target.value;
+          ipcRenderer.send('change-group-color', { groupId, color });
+        });
+      });
 
-      const sortedApps = Object.entries(appTime)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+      // Rename group buttons
+      document.querySelectorAll('.rename-group-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const groupId = btn.getAttribute('data-group-id');
+          const groupNameEl = document.querySelector(`.group-name[data-group-id="${groupId}"]`);
+          const currentName = groupNameEl.textContent;
 
-      if (sortedApps.length === 0) {
-        document.getElementById('appTime').innerHTML = '<div class="no-data">No app activity logged</div>';
-      } else {
-        const appHtml = sortedApps.map(([app, time]) => `
-          <div class="time-entry">
-            <div class="name">${app}</div>
-            <div class="duration">${formatDuration(time)}</div>
-          </div>
-        `).join('');
-        document.getElementById('appTime').innerHTML = appHtml;
-      }
+          const newName = prompt('Enter new group name:', currentName);
+          if (newName && newName.trim() !== '' && newName !== currentName) {
+            ipcRenderer.send('rename-group', { groupId, newName: newName.trim() });
+          }
+        });
+      });
+
+      // Delete group buttons
+      document.querySelectorAll('.delete-group-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const groupId = btn.getAttribute('data-group-id');
+          const groupNameEl = document.querySelector(`.group-name[data-group-id="${groupId}"]`);
+          const groupName = groupNameEl.textContent;
+
+          if (confirm(`Delete group "${groupName}"? Windows will be moved to Unassigned.`)) {
+            ipcRenderer.send('delete-group', groupId);
+          }
+        });
+      });
     }
 
-    function renderDetails(categories, activity) {
-      // Render categories timeline
-      if (!categories.length) {
-        document.getElementById('categoriesTimeline').innerHTML = '<div class="no-data">No client work logged for this date</div>';
-      } else {
-        const html = categories.map((item, index) => `
-          <div class="timeline-item" data-index="${index}">
-            <div class="time">${item.time} • ${item.client || 'Unknown Client'}</div>
-            <div class="description">${item.description || 'No description'}</div>
-          </div>
-        `).join('');
-        document.getElementById('categoriesTimeline').innerHTML = html;
-      }
+    // Export complete
+    ipcRenderer.on('export-complete', (event, filePath) => {
+      alert('Logs exported to: ' + filePath);
+    });
 
-      // Render activity log
-      if (!activity.length) {
-        document.getElementById('activityLog').innerHTML = '<div class="no-data">No window activity logged</div>';
-      } else {
-        const html = activity.slice(0, 200).map(item => `
-          <div class="activity-item">
-            <span class="time">${item.time}</span>
-            <span class="app">${item.app}</span>
-            <span class="title">${item.title}</span>
-          </div>
-        `).join('');
-        document.getElementById('activityLog').innerHTML = html;
-      }
-    }
-
-    // Load today's data on start
-    loadData(today);
+    // Initial load
+    loadTrackedWindows();
+    loadReport(today);
   </script>
 </body>
 </html>

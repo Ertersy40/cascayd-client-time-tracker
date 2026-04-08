@@ -1,8 +1,8 @@
-const { app, desktopCapturer, Tray, Menu, nativeImage, BrowserWindow, ipcMain } = require('electron');
-const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+const { app, Tray, Menu, nativeImage, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
+const desktopIdle = require('desktop-idle');
 
 // Load .env from app directory (works in dev and when packaged)
 const envPath = path.join(__dirname, '.env');
@@ -13,24 +13,18 @@ app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('no-sandbox');
 
 let tray = null;
-let captureInterval = null;
 let windowTrackInterval = null;
-let captureCount = 0;
-let clientWorkCount = 0;
 let mainWindow = null;
 let dashboardWindow = null;
 let lastWindowTitle = '';
 let lastWindowOwner = '';
 let activeWin = null;
-let recentWindows = []; // Track windows since last screenshot
 let logWatchers = {}; // File watchers for log files
 let updateTimeout = null; // Debounce file watcher updates
+let wasInactive = false; // Track if user was inactive in previous check
 
-// Create screenshots directory
-const screenshotsDir = path.join(app.getPath('userData'), 'screenshots');
-if (!fs.existsSync(screenshotsDir)) {
-  fs.mkdirSync(screenshotsDir, { recursive: true });
-}
+// Inactivity threshold in seconds (10 seconds for testing)
+const IDLE_THRESHOLD = 10;
 
 // Create logs directory
 const logsDir = path.join(app.getPath('userData'), 'logs');
@@ -38,47 +32,101 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// AWS Bedrock client
-const bedrockClient = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
-});
+// Tracked windows file
+const trackedWindowsPath = path.join(app.getPath('userData'), 'tracked_windows.json');
 
-// Load categorization prompt
-const promptPath = path.join(__dirname, 'categorization-prompt.txt');
-let categorizationPrompt = 'Categorize this screenshot as SALES, CLIENT, PRODUCT, or OPS';
-if (fs.existsSync(promptPath)) {
-  categorizationPrompt = fs.readFileSync(promptPath, 'utf-8');
-}
-
-// Load clients configuration
-const clientsPath = path.join(app.getPath('userData'), 'clients.json');
-let clients = [];
-function loadClients() {
-  if (fs.existsSync(clientsPath)) {
+// Load tracked windows and groups
+function loadTrackedWindows() {
+  if (fs.existsSync(trackedWindowsPath)) {
     try {
-      clients = JSON.parse(fs.readFileSync(clientsPath, 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(trackedWindowsPath, 'utf-8'));
+      return {
+        groups: data.groups || [],
+        windows: data.windows || []
+      };
     } catch (e) {
-      clients = [];
+      return { groups: [], windows: [] };
     }
   }
-  return clients;
+  return { groups: [], windows: [] };
 }
-loadClients();
+
+// Save tracked windows and groups
+function saveTrackedWindows(groups, windows) {
+  const data = { groups, windows };
+  fs.writeFileSync(trackedWindowsPath, JSON.stringify(data, null, 2));
+}
+
+// Generate random color for groups
+function getRandomColor() {
+  const colors = [
+    '#10b981', // green
+    '#3b82f6', // blue
+    '#f59e0b', // amber
+    '#ef4444', // red
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#06b6d4', // cyan
+    '#f97316', // orange
+    '#14b8a6', // teal
+    '#a855f7', // violet
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+// Generate unique ID
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Calculate time spent per window from activity log
+function calculateWindowTime(activity) {
+  const windowTimeMap = {};
+  const MAX_GAP = 600; // Cap at 10 minutes
+  const DEFAULT_LAST = 120; // 2 minutes for last entry
+
+  for (let i = 0; i < activity.length; i++) {
+    const current = activity[i];
+    const key = `${current.app}|||${current.title}`; // Use ||| as separator to avoid conflicts
+
+    if (!windowTimeMap[key]) {
+      windowTimeMap[key] = {
+        app: current.app,
+        title: current.title,
+        totalSeconds: 0
+      };
+    }
+
+    if (i < activity.length - 1) {
+      const next = activity[i + 1];
+      const currentTime = new Date(current.timestamp);
+      const nextTime = new Date(next.timestamp);
+      const duration = (nextTime - currentTime) / 1000;
+
+      // Only count duration if it's reasonable (less than 10 minutes)
+      if (duration > 0 && duration <= MAX_GAP) {
+        windowTimeMap[key].totalSeconds += duration;
+      } else if (duration > MAX_GAP) {
+        // Cap at max gap
+        windowTimeMap[key].totalSeconds += MAX_GAP;
+      }
+    } else {
+      // Last entry - use default duration
+      windowTimeMap[key].totalSeconds += DEFAULT_LAST;
+    }
+  }
+
+  // Convert map to sorted array
+  const windows = Object.values(windowTimeMap);
+  windows.sort((a, b) => b.totalSeconds - a.totalSeconds);
+
+  return windows;
+}
 
 // Get today's log file
 function getTodayLogFile() {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   return path.join(logsDir, `activity_${today}.log`);
-}
-
-// Get today's categories log file
-function getTodayCategoriesLogFile() {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  return path.join(logsDir, `categories_${today}.log`);
 }
 
 // Watch log files for changes
@@ -88,7 +136,6 @@ function watchLogFiles(date) {
   logWatchers = {};
 
   const activityFile = path.join(logsDir, `activity_${date}.log`);
-  const categoriesFile = path.join(logsDir, `categories_${date}.log`);
 
   // Debounced update function
   const sendUpdate = () => {
@@ -108,16 +155,6 @@ function watchLogFiles(date) {
     fs.writeFileSync(activityFile, '');
   }
   logWatchers.activity = fs.watch(activityFile, (eventType) => {
-    if (eventType === 'change') {
-      sendUpdate();
-    }
-  });
-
-  // Watch categories log (create if doesn't exist)
-  if (!fs.existsSync(categoriesFile)) {
-    fs.writeFileSync(categoriesFile, '');
-  }
-  logWatchers.categories = fs.watch(categoriesFile, (eventType) => {
     if (eventType === 'change') {
       sendUpdate();
     }
@@ -154,10 +191,7 @@ function openDashboard() {
 // Load logs for a specific date
 function loadLogsForDate(date) {
   const activityFile = path.join(logsDir, `activity_${date}.log`);
-  const categoriesFile = path.join(logsDir, `categories_${date}.log`);
-
   const activity = [];
-  const categories = [];
 
   // Parse activity log
   if (fs.existsSync(activityFile)) {
@@ -169,38 +203,24 @@ function loadLogsForDate(date) {
       if (parts.length >= 3) {
         const timestamp = parts[0];
         const time = new Date(timestamp).toLocaleTimeString();
+        const app = parts[1];
+
+        // Skip INACTIVE entries from time calculations
+        if (app === 'INACTIVE') {
+          return;
+        }
+
         activity.push({
           time: time,
           timestamp: timestamp,
-          app: parts[1],
+          app: app,
           title: parts[2]
         });
       }
     });
   }
 
-  // Parse categories log
-  if (fs.existsSync(categoriesFile)) {
-    const content = fs.readFileSync(categoriesFile, 'utf-8');
-    const lines = content.split('\n').filter(line => line.trim());
-
-    lines.forEach(line => {
-      const parts = line.split(' | ');
-      if (parts.length >= 3) {
-        const timestamp = parts[0];
-        const time = new Date(timestamp).toLocaleTimeString();
-        const description = parts[1];
-        const client = parts[2];
-        categories.push({
-          time: time,
-          description: description,
-          client: client
-        });
-      }
-    });
-  }
-
-  return { activity, categories };
+  return { activity };
 }
 
 // IPC handler for loading logs
@@ -215,20 +235,14 @@ ipcMain.on('load-logs', (event, date) => {
 // IPC handler for exporting logs
 ipcMain.on('export-logs', (event, date) => {
   const activityFile = path.join(logsDir, `activity_${date}.log`);
-  const categoriesFile = path.join(logsDir, `categories_${date}.log`);
 
   const exportData = {
     date: date,
-    activity: [],
-    categories: []
+    activity: ''
   };
 
   if (fs.existsSync(activityFile)) {
     exportData.activity = fs.readFileSync(activityFile, 'utf-8');
-  }
-
-  if (fs.existsSync(categoriesFile)) {
-    exportData.categories = fs.readFileSync(categoriesFile, 'utf-8');
   }
 
   const exportPath = path.join(logsDir, `export_${date}.json`);
@@ -238,30 +252,6 @@ ipcMain.on('export-logs', (event, date) => {
   require('electron').shell.openPath(logsDir);
 });
 
-// IPC handler for loading prompt
-ipcMain.on('load-prompt', (event) => {
-  event.reply('prompt-data', categorizationPrompt);
-});
-
-// IPC handler for saving prompt
-ipcMain.on('save-prompt', (event, newPrompt) => {
-  categorizationPrompt = newPrompt;
-  fs.writeFileSync(promptPath, newPrompt, 'utf-8');
-  event.reply('prompt-saved');
-});
-
-// IPC handler for loading clients
-ipcMain.on('load-clients', (event) => {
-  loadClients();
-  event.reply('clients-data', clients);
-});
-
-// IPC handler for saving clients
-ipcMain.on('save-clients', (event, newClients) => {
-  clients = newClients;
-  fs.writeFileSync(clientsPath, JSON.stringify(clients, null, 2));
-});
-
 // IPC handler for opening logs folder
 ipcMain.on('open-logs-folder', () => {
   require('electron').shell.openPath(logsDir);
@@ -269,148 +259,169 @@ ipcMain.on('open-logs-folder', () => {
 
 // IPC handler for opening specific log file
 ipcMain.on('open-log-file', (event, data) => {
-  let filePath;
-  if (data.type === 'categories') {
-    filePath = path.join(logsDir, `categories_${data.date}.log`);
-  } else if (data.type === 'activity') {
-    filePath = path.join(logsDir, `activity_${data.date}.log`);
-  }
-
-  if (filePath && fs.existsSync(filePath)) {
-    require('electron').shell.openPath(filePath);
-  } else {
-    // If file doesn't exist, just open the folder
-    require('electron').shell.openPath(logsDir);
+  if (data.type === 'activity') {
+    const filePath = path.join(logsDir, `activity_${data.date}.log`);
+    if (fs.existsSync(filePath)) {
+      require('electron').shell.openPath(filePath);
+    } else {
+      require('electron').shell.openPath(logsDir);
+    }
   }
 });
 
-// Categorize screenshot using AWS Bedrock
-async function categorizeScreenshot(screenshotPath) {
-  try {
-    // Read the image file
-    const imageBuffer = fs.readFileSync(screenshotPath);
-    const base64Image = imageBuffer.toString('base64');
+// IPC handler for loading tracked windows
+ipcMain.on('load-tracked-windows', (event) => {
+  const data = loadTrackedWindows();
+  event.reply('tracked-windows-data', data);
+});
 
-    // Build context from recent windows
-    let windowContext = '';
-    if (recentWindows.length > 0) {
-      windowContext = '\n\nACTIVE WINDOWS SINCE LAST SCREENSHOT:\n';
-      recentWindows.forEach(w => {
-        windowContext += `- ${w.app}: ${w.title}\n`;
-      });
-      windowContext += '\n';
+// IPC handler for toggling window tracking
+ipcMain.on('toggle-window-tracking', (event, data) => {
+  const { app, title, isTracked } = data;
+  let trackedData = loadTrackedWindows();
+
+  if (isTracked) {
+    // Remove from tracked
+    trackedData.windows = trackedData.windows.filter(w =>
+      !(w.app === app && w.title === title)
+    );
+  } else {
+    // Add to tracked (unassigned by default)
+    trackedData.windows.push({ app, title, groupId: null });
+  }
+
+  saveTrackedWindows(trackedData.groups, trackedData.windows);
+  event.reply('tracked-windows-data', trackedData);
+});
+
+// IPC handler for creating a new group
+ipcMain.on('create-group', (event, groupName) => {
+  const trackedData = loadTrackedWindows();
+  const newGroup = {
+    id: generateId(),
+    name: groupName,
+    color: getRandomColor()
+  };
+  trackedData.groups.push(newGroup);
+  saveTrackedWindows(trackedData.groups, trackedData.windows);
+  event.reply('tracked-windows-data', trackedData);
+});
+
+// IPC handler for renaming a group
+ipcMain.on('rename-group', (event, { groupId, newName }) => {
+  const trackedData = loadTrackedWindows();
+  const group = trackedData.groups.find(g => g.id === groupId);
+  if (group) {
+    group.name = newName;
+    saveTrackedWindows(trackedData.groups, trackedData.windows);
+    event.reply('tracked-windows-data', trackedData);
+  }
+});
+
+// IPC handler for changing group color
+ipcMain.on('change-group-color', (event, { groupId, color }) => {
+  const trackedData = loadTrackedWindows();
+  const group = trackedData.groups.find(g => g.id === groupId);
+  if (group) {
+    group.color = color;
+    saveTrackedWindows(trackedData.groups, trackedData.windows);
+    event.reply('tracked-windows-data', trackedData);
+  }
+});
+
+// IPC handler for deleting a group
+ipcMain.on('delete-group', (event, groupId) => {
+  const trackedData = loadTrackedWindows();
+  // Remove group
+  trackedData.groups = trackedData.groups.filter(g => g.id !== groupId);
+  // Unassign windows from this group
+  trackedData.windows.forEach(w => {
+    if (w.groupId === groupId) {
+      w.groupId = null;
     }
+  });
+  saveTrackedWindows(trackedData.groups, trackedData.windows);
+  event.reply('tracked-windows-data', trackedData);
+});
 
-    // Build client context
-    let clientContext = '';
-    if (clients.length > 0) {
-      clientContext = '\n\nCONFIGURED CLIENTS:\n';
-      clients.forEach(client => {
-        if (client.business) {
-          clientContext += `- ${client.business}`;
-          if (client.people) {
-            clientContext += ` (contacts: ${client.people})`;
-          }
-          clientContext += '\n';
-        }
-      });
-      clientContext += '\nIf you see any of these business names or people in emails, Slack, analytics tools, or internal discussions about them, it counts as CLIENT work.\n';
-    }
+// IPC handler for assigning window to group
+ipcMain.on('assign-window-to-group', (event, { app, title, groupId }) => {
+  const trackedData = loadTrackedWindows();
+  const window = trackedData.windows.find(w => w.app === app && w.title === title);
+  if (window) {
+    window.groupId = groupId;
+    saveTrackedWindows(trackedData.groups, trackedData.windows);
+    event.reply('tracked-windows-data', trackedData);
+  }
+});
 
-    // Prepare the request for Claude Sonnet 4.5
-    const payload = {
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 150,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/png",
-                data: base64Image
-              }
-            },
-            {
-              type: "text",
-              text: clientContext + windowContext + categorizationPrompt
-            }
-          ]
-        }
-      ]
-    };
+// IPC handler for getting windows list for browse tab
+ipcMain.on('get-windows-list', (event, date) => {
+  const data = loadLogsForDate(date);
+  const windowsWithTime = calculateWindowTime(data.activity);
+  const trackedData = loadTrackedWindows();
 
-    const command = new InvokeModelCommand({
-      modelId: "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify(payload)
+  // Add tracking status to each window
+  const windowsList = windowsWithTime.map(w => ({
+    app: w.app,
+    title: w.title,
+    totalSeconds: w.totalSeconds,
+    isTracked: trackedData.windows.some(t => t.app === w.app && t.title === w.title)
+  }));
+
+  event.reply('windows-list-data', windowsList);
+});
+
+// IPC handler for getting report data
+ipcMain.on('get-report', (event, date) => {
+  const data = loadLogsForDate(date);
+  const windowsWithTime = calculateWindowTime(data.activity);
+  const trackedData = loadTrackedWindows();
+
+  // Add group info to tracked windows
+  const reportData = windowsWithTime
+    .filter(w => trackedData.windows.some(t => t.app === w.app && t.title === w.title))
+    .map(w => {
+      const trackedWindow = trackedData.windows.find(t => t.app === w.app && t.title === w.title);
+      return {
+        ...w,
+        groupId: trackedWindow ? trackedWindow.groupId : null
+      };
     });
 
-    const response = await bedrockClient.send(command);
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const fullOutput = responseBody.content[0].text.trim();
-
-    // Extract the last line as the category
-    const lines = fullOutput.split('\n').filter(line => line.trim());
-    const categoryLine = lines[lines.length - 1].trim().toUpperCase();
-    const description = lines.slice(0, -1).join('\n').trim();
-
-    // Parse category and client name
-    let category = 'SKIP';
-    let clientName = '';
-
-    if (categoryLine.startsWith('CLIENT')) {
-      category = 'CLIENT';
-      // Extract client name if present (format: "CLIENT: ClientName")
-      const colonIndex = categoryLine.indexOf(':');
-      if (colonIndex !== -1) {
-        clientName = categoryLine.substring(colonIndex + 1).trim();
-      }
-    }
-
-    console.log(`[CATEGORIZE] Description: "${description}"`);
-    console.log(`[CATEGORIZE] Category: ${category}`);
-    if (clientName) {
-      console.log(`[CATEGORIZE] Client: ${clientName}`);
-    }
-
-    // Only log if it's CLIENT work
-    if (category === 'CLIENT') {
-      const timestamp = new Date().toISOString();
-      const logEntry = `${timestamp} | ${description} | ${clientName || 'Unknown'}\n`;
-      const categoriesLogFile = getTodayCategoriesLogFile();
-      fs.appendFileSync(categoriesLogFile, logEntry);
-
-      clientWorkCount++;
-
-      // Update tray tooltip with client work time
-      if (tray) {
-        const clientMinutes = clientWorkCount * 2;
-        const hours = Math.floor(clientMinutes / 60);
-        const mins = clientMinutes % 60;
-        const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-        tray.setToolTip(`Client Work: ${timeStr}\nLast logged: ${new Date().toLocaleTimeString()}`);
-      }
-    } else {
-      console.log(`[CATEGORIZE] Skipping - not client work`);
-    }
-
-    // Clear recent windows after categorization
-    recentWindows = [];
-
-    return category;
-  } catch (error) {
-    console.error('[CATEGORIZE] ERROR:', error.message);
-    return 'ERROR';
-  }
-}
+  event.reply('report-data', { windows: reportData, groups: trackedData.groups });
+});
 
 async function trackActiveWindow() {
   try {
     if (!activeWin) return;
+
+    // Check idle time in seconds
+    const idleTime = desktopIdle.getIdleTime();
+    const isIdle = idleTime >= IDLE_THRESHOLD;
+
+    // If user was active but is now idle, log the transition
+    if (isIdle && !wasInactive) {
+      const timestamp = new Date().toISOString();
+      const logEntry = `${timestamp} | INACTIVE | User idle for ${Math.floor(idleTime)}s (threshold: ${IDLE_THRESHOLD}s)\n`;
+      const logFile = getTodayLogFile();
+      fs.appendFileSync(logFile, logEntry);
+      wasInactive = true;
+      console.log(`[TRACK] User became inactive (idle: ${idleTime}s)`);
+      return;
+    }
+
+    // If still idle, don't log anything
+    if (isIdle) {
+      return;
+    }
+
+    // User is active - log activity
+    if (wasInactive) {
+      // User became active again
+      wasInactive = false;
+      console.log(`[TRACK] User became active again (idle: ${idleTime}s)`);
+    }
 
     const window = await activeWin();
     if (!window) return;
@@ -426,54 +437,11 @@ async function trackActiveWindow() {
 
       fs.appendFileSync(logFile, logEntry);
 
-      // Add to recent windows for AI context
-      recentWindows.push({ app: owner, title: title });
-
       lastWindowTitle = title;
       lastWindowOwner = owner;
     }
   } catch (error) {
     console.error('[TRACK] ERROR:', error);
-  }
-}
-
-async function captureScreens() {
-  try {
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: { width: 1920, height: 1080 }
-    });
-
-    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
-    const savedFiles = [];
-
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i];
-      const filename = `${timestamp}_screen${i + 1}.png`;
-      const filepath = path.join(screenshotsDir, filename);
-
-      const buffer = source.thumbnail.toPNG();
-      fs.writeFileSync(filepath, buffer);
-      savedFiles.push(filepath);
-    }
-
-    captureCount++;
-
-    // Categorize the first screenshot (assuming primary monitor), then delete
-    if (savedFiles.length > 0) {
-      await categorizeScreenshot(savedFiles[0]);
-
-      // Delete all screenshots after categorization
-      for (const filepath of savedFiles) {
-        try {
-          fs.unlinkSync(filepath);
-        } catch (err) {
-          console.error(`[DELETE] Failed to delete ${filepath}:`, err.message);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Capture error:', error);
   }
 }
 
@@ -488,7 +456,7 @@ function createTray() {
 
   tray = new Tray(icon);
 
-  tray.setToolTip('Tracking client work...');
+  tray.setToolTip('Tracking window activity...');
 
   // Open dashboard on tray click
   tray.on('click', () => {
@@ -534,12 +502,6 @@ app.whenReady().then(async () => {
 
   createTray();
 
-  // Capture immediately on start
-  captureScreens();
-
-  // Then capture every 2 minutes
-  captureInterval = setInterval(captureScreens, 120 * 1000);
-
   console.log(`TimeTracker started.`);
 
   // Check for updates
@@ -564,9 +526,9 @@ app.whenReady().then(async () => {
   const activeWinModule = await import('active-win');
   activeWin = activeWinModule.activeWindow || activeWinModule.default;
 
-  // NOW start tracking windows
+  // NOW start tracking windows every 10 seconds (for testing)
   trackActiveWindow();
-  windowTrackInterval = setInterval(trackActiveWindow, 5 * 1000);
+  windowTrackInterval = setInterval(trackActiveWindow, 10 * 1000);
 });
 
 app.on('window-all-closed', () => {
@@ -575,9 +537,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (captureInterval) {
-    clearInterval(captureInterval);
-  }
   if (windowTrackInterval) {
     clearInterval(windowTrackInterval);
   }
