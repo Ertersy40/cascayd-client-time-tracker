@@ -7,15 +7,26 @@ echo "Cascayd TimeTracker - Release Update"
 echo "======================================"
 echo ""
 
-# Check if GH_TOKEN is set
-if [ -z "$GH_TOKEN" ]; then
-    echo "ERROR: GH_TOKEN environment variable not set!"
+# Check if .env file exists
+if [ ! -f .env ]; then
+    echo "ERROR: .env file not found!"
     echo ""
-    echo "Please set your GitHub token:"
-    echo "  export GH_TOKEN=your_github_token_here"
-    echo ""
-    echo "Or create a .env file with:"
+    echo "Please create a .env file with your GitHub token:"
     echo "  GH_TOKEN=your_github_token_here"
+    echo ""
+    echo "Get a token from: https://github.com/settings/tokens"
+    echo ""
+    exit 1
+fi
+
+# Check if GH_TOKEN is in .env
+if ! grep -q "GH_TOKEN=" .env; then
+    echo "ERROR: GH_TOKEN not found in .env file!"
+    echo ""
+    echo "Please add to .env:"
+    echo "  GH_TOKEN=your_github_token_here"
+    echo ""
+    echo "Get a token from: https://github.com/settings/tokens"
     echo ""
     exit 1
 fi

@@ -10,8 +10,8 @@
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --publish never",
-    "release": "electron-builder --publish always",
+    "build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
+    "release": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false dotenv -e .env -- electron-builder --publish always",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major"
@@ -27,9 +27,7 @@
     "publish": {
       "provider": "github",
       "owner": "Ertersy40",
-      "repo": "timetracker",
-      "private": true,
-      "token": "${GH_TOKEN}"
+      "repo": "timetracker"
     },
     "win": {
       "target": [
@@ -40,7 +38,8 @@
           ]
         }
       ],
-      "sign": false
+      "sign": null,
+      "signingHashAlgorithms": []
     },
     "nsis": {
       "oneClick": false,
@@ -62,6 +61,8 @@
     "electron-updater": "^6.8.3"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
+    "dotenv-cli": "^11.0.0",
     "electron": "^28.0.0",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9"
