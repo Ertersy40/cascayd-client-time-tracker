@@ -29,7 +29,7 @@ let hasAskedTodayAt5pm = false; // Track if we already asked today at 5pm
 let continueUntil = null; // Timestamp for when to ask again after extension
 
 // Inactivity threshold in seconds (10 seconds for testing)
-const IDLE_THRESHOLD = 10;
+const IDLE_THRESHOLD = 180;
 
 // End of day time (5pm = 17:00)
 const END_OF_DAY_HOUR = 17;
